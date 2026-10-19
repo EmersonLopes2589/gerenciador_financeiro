@@ -1,187 +1,143 @@
-# Gerenciador_Financeiro
+# Gerenciador de Finanças
 
-Uma aplicação para gerenciar finanças pessoais — registrar receitas e despesas, categorizar transações, e gerar relatórios mensais. Este README foi atualizado para um formato profissional com instruções claras de uso, execução e contribuição. Se desejar, posso adaptar comandos e exemplos para a stack exata do projeto (por exemplo: Python/Flask, Node/Express, React).
+Uma API simples para gerenciar finanças pessoais: importar transações via CSV, categorizar automaticamente, consultar resumos por categoria e por mês, e gerenciar orçamentos mensais por categoria.
 
 ---
 
 ## Status
-
-Rascunho inicial atualizado em 2026-10-19. O repositório atualmente contém apenas este README; não foram encontrados arquivos de código, manifestos (requirements.txt, package.json, pyproject.toml, etc.) ou artefatos de CI na raiz. Atualize o projeto com código e manifests para que eu possa ajustar instruções de instalação e execução automaticamente.
-
-## Sumário
-
-- Recursos
-- Tecnologias (detecção automática não encontrada)
-- Instalação (passos genéricos)
-- Configuração
-- Uso
-- Estrutura do repositório
-- Contribuição
-- Licença
-- Contato
+Protótipo funcional. Código backend em Python (FastAPI). Banco padrão: SQLite (`transacoes.db`) incluído como exemplo. Há exemplos de testes e um CSV de exemplo.
 
 ## Recursos
-
-- Registro de receitas e despesas
-- Categorização de transações
-- Relatórios e resumo por período (mensal)
-- Exportação/Importação em CSV (opcional)
+- Importação de transações a partir de arquivo CSV (ver formato esperado).
+- Deduplicação automática (uniqueness por data+descrição+valor).
+- Categorização automática das transações.
+- Resumo de receitas/despesas por categoria e por mês.
+- Definição e consulta de orçamentos mensais por categoria.
+- Interface estática servida a partir da pasta `static/`.
 
 ## Tecnologias
-
-Observação: não foram encontrados arquivos de projeto que indiquem a stack. Atualize com um ou mais dos arquivos abaixo e eu adapto estas instruções automaticamente:
-
-- Python: requirements.txt, pyproject.toml
-- Node.js: package.json
-- Frontend: package.json com frameworks (React, Vue, Next.js)
-- Banco de dados: migrations/, Dockerfile, docker-compose.yml
-
-### Exemplo (preencha conforme o que usar)
-- Linguagem: Python 3.11
-- Framework: FastAPI
-- Banco: SQLite (desenvolvimento) / PostgreSQL (produção)
-- ORM: SQLModel / SQLAlchemy
+- Python + FastAPI
+- SQLite (padrão, via arquivo `transacoes.db` ou variável de ambiente)
+- Requisitos listados em `Gerenciador_Financas/requirements.txt`:
+  - fastapi
+  - uvicorn
+  - python-multipart
+  - pytest
+  - httpx
 
 ## Requisitos
-
+- Python 3.10+ (recomendado)
 - Git
-- Interprete/Runtime correspondente à stack (Python, Node.js etc.)
-- Opcional: Docker e docker-compose para execução conteinerizada
+- Opcional: Docker
 
-## Instalação (caminho genérico)
-
-1. Clone o repositório
-
+## Instalação (local)
+1. Clone o repositório:
    ```bash
    git clone https://github.com/EmersonLopes2589/gerenciador_financeiro.git
-   cd gerenciador_financeiro
+   cd gerenciador_financeiro/Gerenciador_Financas
    ```
 
-2. Use o fluxo apropriado para sua stack.
+2. Crie e ative um virtualenv, instale dependências:
+   ```bash
+   python -m venv .venv
+   source .venv/bin/activate   # macOS / Linux
+   .venv\Scripts\activate      # Windows
+   pip install -r requirements.txt
+   ```
 
-- Python (exemplo)
-
-  ```bash
-  python -m venv .venv
-  source .venv/bin/activate   # macOS / Linux
-  .venv\Scripts\activate    # Windows
-  pip install -r requirements.txt
-  ```
-
-- Node.js (exemplo)
-
-  ```bash
-  npm install
-  ```
-
-- Docker (opcional)
-
-  ```bash
-  docker compose up --build
-  ```
-
-## Configuração
-
-- Crie um arquivo de ambiente a partir de um modelo (se existir):
-
-  ```bash
-  cp .env.example .env
-  # edite .env com as credenciais e configurações necessárias
-  ```
-
-- Variáveis comuns:
-  - DATABASE_URL — string de conexão com o banco
-  - SECRET_KEY — chave para criptografia/sessions
-  - PORT — porta da aplicação
+3. (Opcional) Configure o caminho do banco via variável de ambiente:
+   ```bash
+   export FINANCAS_DB=/caminho/para/transacoes.db
+   # Windows (PowerShell):
+   # $env:FINANCAS_DB = "C:\\caminho\\transacoes.db"
+   ```
 
 ## Como executar
+Inicie a API com Uvicorn:
+```bash
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+```
+- A aplicação cria as tabelas no arranque se não existirem.
+- A pasta `static/` é montada na raiz (`/`) e serve arquivos estáticos.
 
-(Exemplos genéricos — substitua conforme a stack detectada)
+## Limites / Observações
+- Limite de upload para importação: ~5 MB.
+- Banco padrão: arquivo `transacoes.db` no diretório (ou ajuste via `FINANCAS_DB`).
 
-- Python / FastAPI
+## API (principais endpoints)
+- POST /transacoes/importar
+  - Descrição: importa um CSV multipart/form-data (campo `file`).
+  - Cabeçalho CSV esperado: `data,descricao,valor` (ex.: `2026-07-01,Salário,5200.00`)
+  - Resposta: resumo de importação (importadas, duplicadas, erros).
+  - Erros:
+    - 400 quando o arquivo tem erros de validação (ex.: cabeçalho inválido, linhas mal-formadas).
+    - 413 quando o arquivo excede 5 MB.
 
+  Exemplo (cURL):
   ```bash
-  uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+  curl -F "file=@transacoes_exemplo.csv" http://localhost:8000/transacoes/importar
   ```
 
-- Node / Express
+- GET /resumo/categorias
+  - Retorna lista com totais por categoria: receitas, despesas e líquido.
 
-  ```bash
-  npm start
+- GET /resumo/meses
+  - Retorna lista com totais por mês (formato `YYYY-MM`): receitas, despesas e líquido.
+
+- POST /orcamentos
+  - Define/atualiza o limite mensal de uma categoria.
+  - Corpo (JSON): { "categoria": "Alimentação", "mes": "2026-10", "limite": 1500.00 }
+  - Retorna status do orçamento (limite, gasto, percentual, alerta).
+
+- GET /orcamentos/{mes}
+  - Lista o status dos orçamentos para o mês informado (YYYY-MM).
+
+## Formato CSV esperado
+- Encoded em UTF-8 (ou UTF-8-sig)
+- Cabeçalho exato:
   ```
+  data,descricao,valor
+  ```
+- Exemplo de linha:
+  ```
+  2026-07-01,Salário empresa XYZ,5200.00
+  ```
+- Arquivo de exemplo incluído: `transacoes_exemplo.csv`
 
-- Executar testes (se houver)
+## Banco de dados
+- Estrutura principal (SQLite):
+  - tabela `transacoes` (id, data, descricao, valor_centavos, categoria) — UNIQUE (data, descricao, valor_centavos)
+  - tabela `orcamentos` (id, categoria, mes, limite_centavos) — UNIQUE (categoria, mes)
+- Valores monetários são armazenados em centavos (inteiro) internamente.
 
+## Testes
+- Testes automatizados estão na pasta `tests/` (se presentes).
+- Executar:
   ```bash
-  # Python
   pytest
-
-  # Node
-  npm test
   ```
 
-## Estrutura do repositório
-
-No momento o repositório contém os seguintes itens no nível superior:
-
-```
-README.md        # documentação principal (atualizada)
-```
-
-Quando o código for adicionado, a estrutura típica recomendada é:
-
-```
-src/ or app/      # código fonte (API / backend)
-web/ or frontend/ # interface cliente (se houver)
-migrations/       # scripts de migração do banco
-tests/            # testes automatizados
-Dockerfile
-docker-compose.yml
-requirements.txt or package.json
-LICENSE
-CONTRIBUTING.md
-```
-
-Como o repositório ainda não contém esses arquivos, posso escanear e atualizar automaticamente a seção acima assim que você adicionar o código ou me autorizar a examinar branches específicos.
-
-## Uso básico (exemplos)
-
-- Adicionar uma receita (exemplo CLI hipotético)
-
-  ```bash
-  # CLI hipotético
-  gerfin add --type income --amount 1500 --category Salario --date 2026-10-19 --description "Salário mensal"
-  ```
-
-- Gerar relatório mensal (exemplo)
-
-  ```bash
-  gerfin report --month 2026-10
-  ```
+## Estrutura do projeto (resumida)
+- app/                — código fonte (FastAPI)
+  - main.py           — rotas e ponto de entrada
+  - db.py             — camada de persistência (SQLite)
+  - importer.py       — parser/validador do CSV
+  - categorizer.py    — lógica de categorização de descrição -> categoria
+  - models.py         — Pydantic models/respostas
+- static/             — arquivos estáticos servidos pela aplicação
+- tests/              — testes
+- transacoes.db       — banco SQLite de exemplo (opcional)
+- transacoes_exemplo.csv — CSV de exemplo
+- requirements.txt
 
 ## Contribuição
-
-Siga estas etapas para contribuir:
-
-1. Fork o repositório
-2. Crie uma branch: `git checkout -b feature/minha-melhoria`
-3. Faça commits claros e atômicos
-4. Abra um Pull Request descrevendo a mudança
-
-Sugestões:
-- Adicione testes para novas funcionalidades
-- Documente alterações significativas na README ou em docs/
+1. Fork e clone este repositório.
+2. Crie uma branch descritiva: `git checkout -b feature/minha-melhoria`.
+3. Adicione testes e documente mudanças.
+4. Abra um Pull Request descrevendo o que foi alterado.
 
 ## Licença
-
-Adicione um arquivo LICENSE com a licença desejada (ex.: MIT, Apache-2.0). Se quiser, eu posso adicionar um LICENSE padrão (MIT) para você.
+Adicionar um arquivo `LICENSE` com a licença desejada (ex.: MIT). Se preferir, posso sugerir um template.
 
 ## Contato
-
 Emerson Lopes — https://github.com/EmersonLopes2589
-
----
-
-Notas das ações realizadas:
-- Eu verifiquei o conteúdo da raiz do repositório e não encontrei arquivos de código nem manifestos de dependência; por isso adotei instruções genéricas e um checklist do que incluir para que eu possa personalizar o README automaticamente.
-- Se você quer que eu aplique uma configuração específica (por exemplo: criar requirements.txt, adicionar Dockerfile, ou inicializar um esqueleto em FastAPI/Node), diga qual stack prefere e eu crio os arquivos correspondentes e atualizo o README novamente.
