@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gerenciador de Finanças</title>
+<style>
+  body { font-family: sans-serif; max-width: 900px; margin: 2rem auto; padding: 0 1rem; }
+  table { border-collapse: collapse; width: 100%; margin-bottom: 2rem; }
+  th, td { border: 1px solid #ccc; padding: .4rem .6rem; text-align: right; }
+  th:first-child, td:first-child { text-align: left; }
+  #msg { margin: .5rem 0; }
+</style>
+</head>
+<body>
+<h1>Gerenciador de Finanças</h1>
+<h2>Importar CSV</h2>
+<input type="file" id="csv" accept=".csv">
+<button id="enviar">Importar</button>
+<p id="msg"></p>
+<h2>Por categoria</h2>
+<table id="cats"><thead><tr><th>Categoria</th><th>Receitas</th><th>Despesas</th><th>Líquido</th></tr></thead><tbody></tbody></table>
+<h2>Por mês</h2>
+<table id="meses"><thead><tr><th>Mês</th><th>Receitas</th><th>Despesas</th><th>Líquido</th></tr></thead><tbody></tbody></table>
+<h2>Orçamentos</h2>
+<label>Mês <input id="orc-mes" value="2026-07" pattern="\d{4}-\d{2}"></label>
+<label>Categoria <input id="orc-cat" value="Alimentação"></label>
+<label>Limite (R$) <input id="orc-limite" type="number" min="0.01" step="0.01" value="800"></label>
+<button id="orc-salvar">Salvar orçamento</button>
+<table id="orcs"><thead><tr><th>Categoria</th><th>Gasto</th><th>Limite</th><th>%</th><th>Status</th></tr></thead><tbody></tbody></table>
+<script src="app.js"></script>
+</body>
+</html>
